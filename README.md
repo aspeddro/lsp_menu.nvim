@@ -68,5 +68,5 @@ Examples:
 ```lua
 vim.keymap.set('n', '<space>ca', function()
   require('lsp_menu').codeaction.run{style = { border = 'single' }}
-end, { buffer - bufnr })
+end, { buffer = bufnr })
 ```
