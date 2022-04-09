@@ -41,7 +41,7 @@ M.on_code_action_results = function(results, ctx, opts)
         enriched_ctx.client_id = client.id
         fn(command, enriched_ctx)
       else
-        M.execute_command(command)
+        vim.lsp.buf.execute_command(command)
       end
     end
   end
