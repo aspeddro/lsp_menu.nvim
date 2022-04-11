@@ -9,7 +9,10 @@ M.format = function(tuples)
   local result = {}
   for index, tuple in ipairs(tuples) do
     local content = tuple[2]
-    table.insert(result, string.format("[%d] %s", index, content.title))
+    table.insert(
+      result,
+      string.format("[%d] %s", index, content.title:gsub("\n", ""))
+    )
   end
   return result
 end
