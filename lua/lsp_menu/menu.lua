@@ -72,8 +72,10 @@ M.open = function(opts)
 
   vim.keymap.set("n", opts.floating.confirm_key, function()
     local lnum = vim.api.nvim_win_get_cursor(winnr)[1]
+    if vim.api.nvim_buf_is_valid(bufnr) then
+      vim.api.nvim_buf_delete(bufnr, { force = true })
+    end
     opts.on_select(lnum)
-    vim.api.nvim_buf_delete(bufnr, { force = true })
   end, { buffer = bufnr })
 end
 
