@@ -77,6 +77,16 @@ M.open = function(opts)
     end
     opts.on_select(lnum)
   end, { buffer = bufnr })
+
+  for lnum, _ in ipairs(content) do
+    vim.keymap.set("n", tostring(lnum), function()
+      if vim.api.nvim_buf_is_valid(bufnr) then
+        vim.api.nvim_buf_delete(bufnr, { force = true })
+      end
+      opts.on_select(lnum)
+    end, { buffer = bufnr })
+  end
+
 end
 
 return M
