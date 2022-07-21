@@ -23,6 +23,7 @@ Supported methods:
 </table>
 <sup>LSP: rust_analyzer</sup>
 
+Use the `confirm_key` or the number shortcut to execute the command.
 
 ## Requirements
 
