@@ -23,8 +23,6 @@ Supported methods:
 </table>
 <sup>LSP: rust_analyzer</sup>
 
-Use the `confirm_key` or the number shortcut to execute the command.
-
 ## Requirements
 
 - Neovim 0.7
@@ -32,7 +30,7 @@ Use the `confirm_key` or the number shortcut to execute the command.
 
 ## Installation
 
-*packer.nvim*
+**packer.nvim**
 
 ```lua
 use 'aspeddro/lsp_menu.nvim'
@@ -49,6 +47,8 @@ local on_attach = function(client, bufnr)
   vim.keymap.set('n', '<space>lr', require'lsp_menu'.codelens.run, { buffer = bufnr })
 end
 ```
+
+Use the `confirm_key` or the number shortcut to execute the command.
 
 ## Customize Menu
 
