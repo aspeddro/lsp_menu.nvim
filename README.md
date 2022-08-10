@@ -44,6 +44,7 @@ local on_attach = function(client, bufnr)
 
   -- Add keymap
   vim.keymap.set('n', '<space>ca', require'lsp_menu'.codeaction.run, { buffer = bufnr })
+  vim.keymap.set('v', '<space>ca', function() require'lsp_menu'.codeaction.run{range = true} end, { buffer = bufnr })
   vim.keymap.set('n', '<space>lr', require'lsp_menu'.codelens.run, { buffer = bufnr })
 end
 ```

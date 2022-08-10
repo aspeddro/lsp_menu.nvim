@@ -44,6 +44,10 @@ M.open = function(opts)
   local bufnr = vim.api.nvim_create_buf(false, true)
   local winnr = vim.api.nvim_open_win(bufnr, true, floting_opts)
 
+  if vim.fn.mode(1) == "v" then
+    vim.api.nvim_input("<esc>")
+  end
+
   for option, value in pairs(win_opts) do
     vim.api.nvim_win_set_option(winnr, option, value)
   end
