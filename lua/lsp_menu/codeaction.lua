@@ -102,14 +102,14 @@ M.on_code_action_results = function(results, ctx, opts)
 end
 
 -- Run code action
----@param opts? table floating menu options, @see |vim.lsp.util.make_floating_popup_options|
+---@param opts? table
 --- @return nil
 M.run = function(opts)
   local bufnr = vim.api.nvim_get_current_buf()
   local context = {}
   context.diagnostics = vim.lsp.diagnostic.get_line_diagnostics()
 
-  local params = vim.lsp.util.make_range_params()
+  local params = (opts and opts.range) and vim.lsp.util.make_given_range_params() or vim.lsp.util.make_range_params()
   params.context = context
 
   local method = "textDocument/codeAction"
