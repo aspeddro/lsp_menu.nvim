@@ -3,8 +3,8 @@ local menu = require("lsp_menu.menu")
 
 local M = {}
 
---- Execute a lens
---- @see |vim.lsp.codelens| private function
+---@private
+---@see https://github.com/neovim/neovim/blob/0b71960ab1bcbcc42f2d6abba4c72cd6ac3c840b/runtime/lua/vim/lsp/codelens.lua#L30
 M.execute_lens = function(lens, bufnr, client_id)
   local client = vim.lsp.get_client_by_id(client_id)
   if not client then
@@ -39,9 +39,10 @@ M.execute_lens = function(lens, bufnr, client_id)
   end, bufnr)
 end
 
--- Format lens
---- @param lenses table
---- @return string[]
+---Format lens
+---@private
+---@param lenses table
+---@return string[]
 M.format = function(lenses)
   local result = {}
   for index, lens in ipairs(lenses) do
@@ -50,10 +51,9 @@ M.format = function(lenses)
   return result
 end
 
--- Run codelens
----@param opts? table floating menu options, @see |vim.lsp.util.make_floating_popup_options|
---- @return nil
-M.run = function(opts)
+---Run codelens
+---@return nil
+M.run = function()
   local bufnr = vim.api.nvim_get_current_buf()
   local linen = vim.api.nvim_win_get_cursor(0)[1]
 
@@ -77,8 +77,7 @@ M.run = function(opts)
     content = content,
     on_select = function(lnum)
       M.execute_lens(lenses_on_current_line[lnum], bufnr, cache.get(bufnr))
-    end,
-    flotings = opts,
+    end
   })
 end
 

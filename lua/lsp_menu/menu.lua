@@ -1,24 +1,14 @@
+local config = require("lsp_menu.config")
+
 local M = {}
 
-local augroup_id = vim.api.nvim_create_augroup("LspMenu", { clear = true })
-
---- Open a floating menu
---- @param opts table with fields
----             - content: array of string
----             - on_select: callback function
----             - floating: floating menu options
----               - close_key: (string, default q) key to close popup menu
----               - confirm_key: (string, default <cr>) key to confirm selection
----               - style?: (table, see |vim.lsp.util.make_floating_popup_options|)
---- @return nil
+---Open a floating menu
+---@param opts table with fields
+---            - content: string[]
+---            - on_select: callback function
+---@return nil
 M.open = function(opts)
-  opts.floating = vim.tbl_deep_extend("keep", opts.floating or {}, {
-    close_key = "q",
-    confirm_key = "<cr>",
-    style = {
-      border = "rounded",
-    },
-  })
+  opts.floating = config.get()
 
   local buffer_opts = {
     filetype = "markdown",
@@ -58,11 +48,13 @@ M.open = function(opts)
     vim.api.nvim_buf_set_option(bufnr, option, value)
   end
 
-  vim.api.nvim_create_autocmd({ "BufLeave" }, {
+  local augroup_id = vim.api.nvim_create_augroup("LspMenu", { clear = true })
+
+  vim.api.nvim_create_autocmd("WinLeave", {
     group = augroup_id,
     callback = function()
-      if vim.api.nvim_buf_is_valid(bufnr) then
-        vim.api.nvim_buf_delete(bufnr, { force = true })
+      if vim.api.nvim_win_is_valid(winnr) then
+        vim.api.nvim_win_close(winnr, true)
       end
     end,
   })
@@ -70,7 +62,9 @@ M.open = function(opts)
   vim.keymap.set(
     "n",
     opts.floating.close_key,
-    [[<cmd>bdelete<cr>]],
+    function ()
+      vim.api.nvim_buf_delete(bufnr, { force = true })
+    end,
     { buffer = bufnr }
   )
 
