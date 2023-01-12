@@ -1,3 +1,9 @@
+# No Longer Maintained
+
+This plugin is no longer maintained.
+
+I'm archiving the GitHub repo. Feel free to fork
+
 # lsp_menu.nvim
 
 A simple menu to handle some LSP requests.
