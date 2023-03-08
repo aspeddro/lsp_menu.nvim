@@ -31,8 +31,7 @@ Supported methods:
 
 ## Requirements
 
-- Neovim 0.7
-  - `vim.keymap` and `vim.api.nvim_create_autocmd` required
+- Neovim >= 0.8.0
 
 ## Installation
 
@@ -49,8 +48,7 @@ local on_attach = function(client, bufnr)
   require('lsp_menu').on_attach(client, bufnr)
 
   -- Add keymap
-  vim.keymap.set('n', '<space>ca', require'lsp_menu'.codeaction.run, { buffer = bufnr })
-  vim.keymap.set('v', '<space>ca', function() require'lsp_menu'.codeaction.run{range = true} end, { buffer = bufnr })
+  vim.keymap.set({'n', 'v'}, '<space>ca', require'lsp_menu'.codeaction.run, { buffer = bufnr })
   vim.keymap.set('n', '<space>lr', require'lsp_menu'.codelens.run, { buffer = bufnr })
 end
 ```
@@ -62,19 +60,12 @@ Use the `confirm_key` or the number shortcut to execute the command.
 Default options:
 
 ```lua
-{
+local opts = {
   close_key = "q",
   confirm_key = "<cr>",
   style = {
     border = "rounded",
   }
 }
-```
-
-Examples:
-
-```lua
-vim.keymap.set('n', '<space>ca', function()
-  require('lsp_menu').codeaction.run{style = { border = 'single' }}
-end, { buffer = bufnr })
+require('lsp_menu').on_attach(client, bufnr, opts)
 ```

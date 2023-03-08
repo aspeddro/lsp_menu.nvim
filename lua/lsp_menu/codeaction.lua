@@ -2,9 +2,37 @@ local menu = require("lsp_menu.menu")
 
 local M = {}
 
--- Format code action table
---- @param tuples table
---- @return string[]
+---@see https://github.com/neovim/neovim/blob/0b71960ab1bcbcc42f2d6abba4c72cd6ac3c840b/runtime/lua/vim/lsp/buf.lua#L122
+---@private
+---@return table {start={row, col}, end={row, col}} using (1, 0) indexing
+local function range_from_selection()
+  -- TODO: Use `vim.region()` instead https://github.com/neovim/neovim/pull/13896
+
+  -- [bufnum, lnum, col, off]; both row and column 1-indexed
+  local start = vim.fn.getpos('v')
+  local end_ = vim.fn.getpos('.')
+  local start_row = start[2]
+  local start_col = start[3]
+  local end_row = end_[2]
+  local end_col = end_[3]
+
+  -- A user can start visual selection at the end and move backwards
+  -- Normalize the range to start < end
+  if start_row == end_row and end_col < start_col then
+    end_col, start_col = start_col, end_col
+  elseif end_row < start_row then
+    start_row, end_row = end_row, start_row
+    start_col, end_col = end_col, start_col
+  end
+  return {
+    ['start'] = { start_row, start_col - 1 },
+    ['end'] = { end_row, end_col - 1 },
+  }
+end
+
+---Format code action table
+---@param tuples table
+---@return string[]
 M.format = function(tuples)
   local result = {}
   for index, tuple in ipairs(tuples) do
@@ -17,8 +45,39 @@ M.format = function(tuples)
   return result
 end
 
-M.on_code_action_results = function(results, ctx, opts)
+---@private
+---@see https://github.com/neovim/neovim/blob/0b71960ab1bcbcc42f2d6abba4c72cd6ac3c840b/runtime/lua/vim/lsp/buf.lua#L591
+M.on_code_action_results = function(results, ctx, options)
   local action_tuples = {}
+
+  ---@private
+  local function action_filter(a)
+    -- filter by specified action kind
+    if options and options.context and options.context.only then
+      if not a.kind then
+        return false
+      end
+      local found = false
+      for _, o in ipairs(options.context.only) do
+        -- action kinds are hierarchical with . as a separator: when requesting only
+        -- 'quickfix' this filter allows both 'quickfix' and 'quickfix.foo', for example
+        if a.kind:find('^' .. o .. '$') or a.kind:find('^' .. o .. '%.') then
+          found = true
+          break
+        end
+      end
+      if not found then
+        return false
+      end
+    end
+    -- filter by user function
+    if options and options.filter and not options.filter(a) then
+      return false
+    end
+    -- no filter removed this action
+    return true
+  end
+
   for client_id, result in pairs(results) do
     for _, action in pairs(result.result or {}) do
       table.insert(action_tuples, { client_id, action })
@@ -44,7 +103,14 @@ M.on_code_action_results = function(results, ctx, opts)
         enriched_ctx.client_id = client.id
         fn(command, enriched_ctx)
       else
-        vim.lsp.buf.execute_command(command)
+        -- Not using command directly to exclude extra properties,
+        -- see https://github.com/python-lsp/python-lsp-server/issues/146
+        local params = {
+          command = command.command,
+          arguments = command.arguments,
+          workDoneToken = command.workDoneToken,
+        }
+        client.request("workspace/executeCommand", params, nil, ctx.bufnr)
       end
     end
   end
@@ -71,8 +137,7 @@ M.on_code_action_results = function(results, ctx, opts)
     if
       not action.edit
       and client
-      and type(client.resolved_capabilities.code_action) == "table"
-      and client.resolved_capabilities.code_action.resolveProvider
+      and vim.tbl_get(client.server_capabilities, 'codeActionProvider', 'resolveProvider')
     then
       client.request(
         "codeAction/resolve",
@@ -96,20 +161,40 @@ M.on_code_action_results = function(results, ctx, opts)
     content = content,
     on_select = function(lnum)
       on_user_choice(action_tuples[lnum])
-    end,
-    floating = opts,
+    end
   })
 end
 
--- Run code action
----@param opts? table
---- @return nil
-M.run = function(opts)
-  local bufnr = vim.api.nvim_get_current_buf()
-  local context = {}
-  context.diagnostics = vim.lsp.diagnostic.get_line_diagnostics()
+---Run code action
+---@param options? table
+---@return nil
+---@see https://github.com/neovim/neovim/blob/0b71960ab1bcbcc42f2d6abba4c72cd6ac3c840b/runtime/lua/vim/lsp/buf.lua#L750
+M.run = function(options)
+  options = options or {}
+  -- Detect old API call code_action(context) which should now be
+  -- code_action({ context = context} )
+  if options.diagnostics or options.only then
+    options = { options = options }
+  end
+  local context = options.context or {}
 
-  local params = (opts and opts.range) and vim.lsp.util.make_given_range_params() or vim.lsp.util.make_range_params()
+  local bufnr = vim.api.nvim_get_current_buf()
+  if not context.diagnostics then
+    context.diagnostics = vim.lsp.diagnostic.get_line_diagnostics(bufnr)
+  end
+  local params
+  local mode = vim.api.nvim_get_mode().mode
+  if options.range then
+    assert(type(options.range) == 'table', 'code_action range must be a table')
+    local start = assert(options.range.start, 'range must have a `start` property')
+    local end_ = assert(options.range['end'], 'range must have a `end` property')
+    params = vim.lsp.util.make_given_range_params(start, end_)
+  elseif mode == 'v' or mode == 'V' then
+    local range = range_from_selection()
+    params = vim.lsp.util.make_given_range_params(range.start, range['end'])
+  else
+    params = vim.lsp.util.make_range_params()
+  end
   params.context = context
 
   local method = "textDocument/codeAction"
@@ -118,7 +203,7 @@ M.run = function(opts)
     M.on_code_action_results(
       results,
       { bufnr = bufnr, method = method, params = params },
-      opts
+      options
     )
   end)
 end
